@@ -1,9 +1,9 @@
 #https://github.com/marketplace/actions/hub-mirror-action
 name: syncToGitee
 on:
-  push:
-    tags:
-      - '*'
+  schedule:
+    - cron: '0 17 * * *' # 01:00 Asia/Shanghai (UTC+8)
+  workflow_dispatch:
 jobs:
   repo-sync:
     runs-on: ubuntu-latest
