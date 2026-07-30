@@ -12,7 +12,7 @@ jobs:
   sync-forks:
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ secrets.SYNC_FORKS_TOKEN }}
+      GH_TOKEN: ${{ secrets.ACTION_GITHUB_TOKEN }}
       ORG: ${{ github.repository_owner }}
     steps:
       - name: Sync forks with their upstream repositories
