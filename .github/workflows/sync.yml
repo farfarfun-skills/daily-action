@@ -2,7 +2,7 @@ name: Daily sync
 
 on:
   schedule:
-    - cron: "0 16 * * *" # 00:00 Asia/Shanghai (UTC+8)
+    - cron: "0 */4 * * *" # Every 4 hours
   workflow_dispatch:
 
 permissions:
@@ -15,29 +15,32 @@ jobs:
       GH_TOKEN: ${{ secrets.ACTION_GITHUB_TOKEN }}
       ORG: ${{ github.repository_owner }}
     steps:
-      - name: Sync forks with their upstream repositories
+      - name: Sync matching forks with their upstream repositories
+        id: repos
         shell: bash
         run: |
           set -euo pipefail
 
-          forks="$RUNNER_TEMP/forks.tsv"
-          gh api --paginate "orgs/$ORG/repos?type=forks&per_page=100" \
-            --jq '.[] | [.name, .default_branch] | @tsv' > "$forks"
+          repos="$RUNNER_TEMP/repos.tsv"
+          gh api --paginate "orgs/$ORG/repos?type=all&per_page=100" \
+            --jq '.[] | select(.name | contains("--")) | [.name, .default_branch, .fork] | @tsv' > "$repos"
+          echo "names=$(cut -f1 "$repos" | paste -sd, -)" >> "$GITHUB_OUTPUT"
 
           failed=()
-          while IFS=$'\t' read -r repo branch; do
+          while IFS=$'\t' read -r repo branch fork; do
+            [[ "$fork" == "true" ]] || continue
             echo "Syncing $ORG/$repo ($branch)"
             gh api --method POST "repos/$ORG/$repo/merge-upstream" \
               -f branch="$branch" || failed+=("$repo")
-          done < "$forks"
+          done < "$repos"
 
           ((${#failed[@]} == 0)) || {
             echo "::error::Failed to sync: ${failed[*]}"
             exit 1
           }
 
-      - name: Mirror the Github organization repos to Gitee.
-        if: always()
+      - name: Mirror matching Github repositories to Gitee
+        if: always() && steps.repos.outputs.names != ''
         uses: Yikun/hub-mirror-action@master
         with:
           src: github/farfarfun-skills
@@ -46,3 +49,4 @@ jobs:
           dst_token: ${{ secrets.GITEE_TOKEN }}
           force_update: true
           account_type: org
+          static_list: ${{ steps.repos.outputs.names }}
