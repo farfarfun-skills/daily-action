@@ -40,8 +40,8 @@ jobs:
         if: always()
         uses: Yikun/hub-mirror-action@master
         with:
-          src: github/tauskills
-          dst: gitee/tauskills
+          src: github/farfarfun-skills
+          dst: gitee/farfarfun-skills
           dst_key: ${{ secrets.GITEE_RSA_PRIVATE_KEY }}
           dst_token: ${{ secrets.GITEE_TOKEN }}
           force_update: true
